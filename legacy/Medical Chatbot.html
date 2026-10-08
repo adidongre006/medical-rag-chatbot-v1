@@ -1,0 +1,718 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Medical Chatbot</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap">
+<style>
+[hidden] { display: none !important; }
+/* Layout: ChatGPT-style shell. History sidebar | header, thread, composer.
+   Tokens are the same as the Next.js app (src/app/globals.css), dark-first. */
+:root {
+  color-scheme: dark;
+  --bg-from: rgb(38 51 61);
+  --bg-via: rgb(50 55 65);
+  --bg-to: rgb(33 33 78);
+  --surface: rgb(0 0 0 / 0.4);
+  --surface-strong: rgb(0 0 0 / 0.55);
+  --surface-hover: rgb(255 255 255 / 0.07);
+  --line: rgb(255 255 255 / 0.12);
+  --fg: #f4f6fb;
+  --muted: rgb(255 255 255 / 0.7);
+  --accent: rgb(82 172 255);
+  --accent-fg: #04223d;
+  --accent-soft: rgb(82 172 255 / 0.16);
+  --user: #58cc71;
+  --user-fg: #06210f;
+  --online: #4cd137;
+  --danger: #ff8080;
+  --danger-soft: rgb(255 128 128 / 0.14);
+  --warn-soft: rgb(255 196 87 / 0.14);
+  --warn-line: rgb(255 196 87 / 0.4);
+  --ring: rgb(120 190 255);
+  --shadow-glass: 0 8px 32px rgb(0 0 0 / 0.35);
+  --dot-ring: #ffffff;
+  --font: "Inter", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme="dark"]) {
+    color-scheme: light;
+    --bg-from: #eaf1f8; --bg-via: #f4f7fb; --bg-to: #e6e9fb;
+    --surface: rgb(255 255 255 / 0.72); --surface-strong: rgb(255 255 255 / 0.92);
+    --surface-hover: rgb(15 27 45 / 0.06); --line: rgb(15 27 45 / 0.14);
+    --fg: #0f1b2d; --muted: #475670;
+    --accent: #0b64c0; --accent-fg: #ffffff; --accent-soft: rgb(11 100 192 / 0.1);
+    --online: #2fa81d; --danger: #b3261e; --danger-soft: rgb(179 38 30 / 0.1);
+    --warn-soft: rgb(176 112 0 / 0.1); --warn-line: rgb(176 112 0 / 0.4);
+    --ring: #0b64c0; --shadow-glass: 0 8px 32px rgb(15 27 45 / 0.12);
+  }
+}
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg-from: #eaf1f8; --bg-via: #f4f7fb; --bg-to: #e6e9fb;
+  --surface: rgb(255 255 255 / 0.72); --surface-strong: rgb(255 255 255 / 0.92);
+  --surface-hover: rgb(15 27 45 / 0.06); --line: rgb(15 27 45 / 0.14);
+  --fg: #0f1b2d; --muted: #475670;
+  --accent: #0b64c0; --accent-fg: #ffffff; --accent-soft: rgb(11 100 192 / 0.1);
+  --online: #2fa81d; --danger: #b3261e; --danger-soft: rgb(179 38 30 / 0.1);
+  --warn-soft: rgb(176 112 0 / 0.1); --warn-line: rgb(176 112 0 / 0.4);
+  --ring: #0b64c0; --shadow-glass: 0 8px 32px rgb(15 27 45 / 0.12);
+}
+
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font: 400 15px/1.6 var(--font);
+  color: var(--fg);
+  background-color: var(--bg-via);
+  background-image: linear-gradient(to right, var(--bg-from), var(--bg-via), var(--bg-to));
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+}
+button, textarea, input { font: inherit; color: inherit; }
+button { cursor: pointer; background: none; border: 0; padding: 0; }
+:focus-visible { outline: 2px solid var(--ring); outline-offset: 2px; border-radius: 6px; }
+.sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.ic { width: 1em; height: 1em; flex: none; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+time, .tab { font-variant-numeric: tabular-nums; }
+* { scrollbar-width: thin; scrollbar-color: var(--line) transparent; }
+
+.app { display: flex; height: 100%; overflow: hidden; }
+
+/* ---------- sidebar ---------- */
+.sidebar {
+  width: 18rem; flex: none; display: flex; flex-direction: column;
+  background: var(--surface-strong); border-right: 1px solid var(--line);
+  -webkit-backdrop-filter: blur(20px); backdrop-filter: blur(20px);
+}
+.sb-top { display: flex; align-items: center; gap: 8px; padding: 12px; }
+.new-chat {
+  flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 9px 12px;
+  border: 1px solid var(--line); border-radius: 12px; font-size: 14px; font-weight: 500; text-align: left;
+}
+.new-chat:hover, .icon-btn:hover, .row-btn:hover { background: var(--surface-hover); }
+.new-chat kbd { margin-left: auto; font: 500 10px var(--font); color: var(--muted); border: 1px solid var(--line); border-radius: 4px; padding: 0 6px; }
+.sb-nav { flex: 1; min-height: 0; overflow-y: auto; padding: 0 8px 16px; }
+.sb-group h2 { margin: 0; padding: 12px 12px 4px; font-size: 11px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--muted); }
+.sb-group ul { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 2px; }
+.conv { position: relative; display: flex; align-items: center; border-radius: 10px; }
+.conv:hover { background: var(--surface-hover); }
+.conv.active { background: var(--accent-soft); }
+.conv-main { flex: 1; min-width: 0; display: flex; align-items: center; gap: 8px; padding: 8px 12px; text-align: left; font-size: 14px; border-radius: 10px; }
+.conv-main span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.conv-main .ic { color: var(--muted); }
+.conv-tools { display: flex; gap: 2px; margin-right: 4px; opacity: 0; transition: opacity 0.15s; }
+.conv:hover .conv-tools, .conv:focus-within .conv-tools, .conv-tools.on { opacity: 1; }
+.row-btn { width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; border-radius: 7px; color: var(--muted); font-size: 15px; }
+.row-btn:hover { color: var(--fg); }
+.row-btn.danger { color: var(--danger); }
+.rename { margin: 4px; width: calc(100% - 8px); background: transparent; border: 1px solid var(--accent); border-radius: 7px; padding: 4px 8px; font-size: 14px; outline: none; }
+.sb-empty { padding: 24px 12px; text-align: center; font-size: 13px; color: var(--muted); }
+.sb-foot { border-top: 1px solid var(--line); padding: 12px; display: flex; flex-direction: column; gap: 8px; font-size: 12px; color: var(--muted); }
+.sb-foot p { margin: 0; display: flex; gap: 6px; align-items: flex-start; }
+.sb-foot p .ic { margin-top: 3px; }
+.link-btn { align-self: flex-start; text-decoration: underline; text-underline-offset: 2px; font-size: 12px; color: var(--muted); }
+.link-btn:hover { color: var(--fg); }
+.confirm { display: flex; align-items: center; gap: 8px; color: var(--fg); }
+.confirm span { flex: 1; }
+.chip-btn { border: 1px solid var(--line); border-radius: 7px; padding: 3px 9px; font-size: 12px; }
+.chip-btn:hover { background: var(--surface-hover); }
+.chip-btn.danger { border-color: var(--danger); color: var(--danger); }
+.backdrop { display: none; }
+
+/* ---------- main column ---------- */
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.header {
+  display: flex; align-items: center; gap: 12px; padding: 10px 16px;
+  background: var(--surface); border-bottom: 1px solid var(--line);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+}
+.icon-btn { width: 36px; height: 36px; display: inline-flex; align-items: center; justify-content: center; border-radius: 9px; color: var(--muted); font-size: 18px; }
+.icon-btn:hover { color: var(--fg); }
+.avatar-wrap { position: relative; flex: none; }
+.avatar { display: flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--accent); color: var(--accent-fg); border: 1.5px solid var(--line); }
+.avatar.lg { width: 40px; height: 40px; font-size: 20px; }
+.dot { position: absolute; right: 0; bottom: 0; width: 12px; height: 12px; border-radius: 50%; background: var(--online); border: 2px solid var(--dot-ring); }
+.titles { flex: 1; min-width: 0; line-height: 1.25; }
+.titles h1 { margin: 0; font-size: 16px; font-weight: 600; display: flex; align-items: center; gap: 8px; }
+.titles h1 span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pill { flex: none; font-size: 10px; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; padding: 2px 7px; border-radius: 999px; background: var(--warn-soft); border: 1px solid var(--warn-line); }
+.titles p { margin: 2px 0 0; font-size: 12px; color: var(--muted); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.banner { display: flex; align-items: flex-start; gap: 12px; padding: 10px 16px; font-size: 13px; background: var(--warn-soft); border-bottom: 1px solid var(--warn-line); }
+.banner .ic { margin-top: 3px; font-size: 16px; }
+.banner p { margin: 0; flex: 1; min-width: 0; }
+.banner small { color: var(--muted); font-size: inherit; }
+
+.stage { flex: 1; min-height: 0; display: flex; flex-direction: column; position: relative; }
+.scroller { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; }
+.thread { max-width: 48rem; margin: 0 auto; padding: 24px 16px; display: flex; flex-direction: column; gap: 28px; }
+
+/* empty state */
+.empty { flex: 1; min-height: 0; overflow-y: auto; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 24px; padding: 32px 16px; text-align: center; animation: rise 0.4s ease-out both; }
+.empty .avatar { width: 64px; height: 64px; font-size: 32px; box-shadow: var(--shadow-glass); }
+.empty .avatar-wrap .dot { width: 14px; height: 14px; right: 2px; bottom: 2px; }
+.empty h2 { margin: 12px 0 0; font-size: 24px; font-weight: 600; letter-spacing: -0.01em; text-wrap: balance; }
+.empty .sub { margin: 8px auto 0; max-width: 28rem; font-size: 14px; color: var(--muted); }
+.suggest { list-style: none; padding: 0; margin: 0; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; width: 100%; max-width: 42rem; }
+.suggest button {
+  width: 100%; height: 100%; display: flex; gap: 10px; align-items: flex-start; text-align: left; font-size: 14px;
+  padding: 12px 14px; border-radius: 15px; border: 1px solid var(--line); background: var(--surface);
+  -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px);
+}
+.suggest button:hover { background: var(--surface-hover); }
+.suggest .ic { margin-top: 3px; color: var(--accent); }
+
+/* messages */
+.msg.user { display: flex; justify-content: flex-end; }
+.user-col { max-width: 85%; display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.bubble { background: var(--user); color: var(--user-fg); padding: 10px 16px; border-radius: 1.25rem 1.25rem 6px 1.25rem; white-space: pre-wrap; overflow-wrap: anywhere; box-shadow: 0 1px 2px rgb(0 0 0 / 0.2); }
+.stamp { font-size: 11px; color: var(--muted); padding: 0 4px; }
+.msg.bot { display: flex; gap: 12px; }
+.msg.bot .avatar { width: 32px; height: 32px; font-size: 16px; margin-top: 2px; flex: none; border: 0; }
+.bot-body { min-width: 0; flex: 1; }
+.md { overflow-wrap: anywhere; }
+.md > :first-child { margin-top: 0; } .md > :last-child { margin-bottom: 0; }
+.md p, .md ul, .md ol { margin: 0.7em 0; }
+.md ul { list-style: disc; padding-left: 1.4em; } .md ol { list-style: decimal; padding-left: 1.5em; }
+.md li { margin: 0.25em 0; }
+.md strong { font-weight: 650; }
+.caret > :last-child:not(ul):not(ol)::after, .caret > ul:last-child > li:last-child::after, .caret > ol:last-child > li:last-child::after, .caret:empty::after { content: ""; display: inline-block; width: 0.5ch; height: 1.05em; margin-left: 2px; vertical-align: text-bottom; background: var(--accent); border-radius: 1px; animation: blink 1s steps(1) infinite; }
+.typing { display: flex; align-items: center; gap: 6px; height: 28px; }
+.typing i { width: 6px; height: 6px; border-radius: 50%; background: var(--muted); animation: bounce 1.2s ease-in-out infinite; }
+.typing i:nth-child(2) { animation-delay: 0.15s; } .typing i:nth-child(3) { animation-delay: 0.3s; }
+.note { margin: 8px 0 0; font-size: 12px; font-style: italic; color: var(--muted); }
+.err { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin-top: 8px; padding: 8px 12px; border-radius: 12px; font-size: 14px; border: 1px solid var(--line); background: var(--danger-soft); color: var(--danger); }
+.emergency { display: flex; gap: 10px; align-items: flex-start; margin-top: 8px; padding: 10px 12px; border-radius: 12px; font-size: 14px; border: 1px solid var(--danger); background: var(--danger-soft); text-align: left; }
+.emergency .ic { margin-top: 3px; color: var(--danger); }
+.emergency p { margin: 0; }
+
+.sources { margin-top: 12px; border: 1px solid var(--line); border-radius: 12px; background: var(--surface); font-size: 13px; }
+.sources summary { list-style: none; display: flex; align-items: center; gap: 8px; padding: 8px 12px; color: var(--muted); cursor: pointer; border-radius: 12px; }
+.sources summary::-webkit-details-marker { display: none; }
+.sources summary:hover { color: var(--fg); }
+.sources summary .ic { color: var(--accent); }
+.sources summary .chev { margin-left: auto; font-size: 11px; transition: transform 0.15s; }
+.sources[open] summary .chev { transform: rotate(180deg); }
+.sources ol { margin: 0; padding: 10px 12px; list-style: none; display: flex; flex-direction: column; gap: 8px; border-top: 1px solid var(--line); }
+.sources li { display: flex; gap: 8px; }
+.sources li b { display: block; font-size: 12px; font-weight: 600; }
+.sources li b span { color: var(--muted); font-weight: 400; }
+.sources li small { display: block; font-size: 12px; color: var(--muted); }
+.actions { display: flex; align-items: center; gap: 2px; margin: 6px 0 0 -8px; }
+.act { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; color: var(--muted); font-size: 16px; }
+.act:hover { background: var(--surface-hover); color: var(--fg); }
+.act[aria-pressed="true"] { color: var(--accent); }
+.actions time { margin-left: 8px; font-size: 11px; color: var(--muted); }
+
+.jump { position: absolute; left: 50%; bottom: 10px; transform: translateX(-50%); display: inline-flex; align-items: center; gap: 6px; padding: 6px 14px; border-radius: 999px; font-size: 12px; font-weight: 500; border: 1px solid var(--line); background: var(--surface-strong); box-shadow: var(--shadow-glass); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
+.jump:hover { background: var(--surface-hover); }
+
+/* composer */
+.composer { padding: 8px 16px 12px; }
+.composer form { max-width: 48rem; margin: 0 auto; }
+.field { display: flex; align-items: flex-end; gap: 8px; padding: 8px 8px 8px 16px; border: 1px solid var(--line); border-radius: 1.5rem; background: var(--surface-strong); box-shadow: var(--shadow-glass); -webkit-backdrop-filter: blur(12px); backdrop-filter: blur(12px); }
+.field:focus-within { border-color: var(--accent); }
+.field textarea { flex: 1; min-width: 0; align-self: center; resize: none; border: 0; outline: none; background: transparent; padding: 6px 0; line-height: 24px; min-height: 24px; max-height: none; }
+.field textarea::placeholder { color: var(--muted); }
+.send { width: 40px; height: 40px; flex: none; display: inline-flex; align-items: center; justify-content: center; border-radius: 50%; background: var(--accent); color: var(--accent-fg); font-size: 20px; }
+.send:disabled { opacity: 0.4; cursor: not-allowed; }
+.send.stop { background: var(--fg); color: var(--bg-from); font-size: 16px; }
+.hint { display: flex; justify-content: space-between; gap: 12px; margin: 6px 12px 0; min-height: 16px; font-size: 11px; color: var(--muted); }
+.hint .over { color: var(--danger); font-weight: 600; }
+
+/* dialog */
+dialog { margin: auto; width: min(92vw, 26rem); padding: 20px; border: 1px solid var(--line); border-radius: 15px; background: var(--bg-via); color: var(--fg); box-shadow: var(--shadow-glass); }
+dialog::backdrop { background: rgb(0 0 0 / 0.5); }
+dialog .top { display: flex; justify-content: space-between; align-items: center; }
+dialog h2 { margin: 0; font-size: 16px; }
+dialog dl { margin: 16px 0 0; display: flex; flex-direction: column; gap: 10px; font-size: 14px; }
+dialog dl div { display: flex; justify-content: space-between; align-items: center; gap: 16px; }
+dialog dt { color: var(--muted); } dialog dd { margin: 0; display: flex; gap: 4px; }
+dialog kbd { font: 500 12px ui-monospace, Menlo, Consolas, monospace; border: 1px solid var(--line); border-radius: 6px; padding: 1px 6px; background: var(--surface); }
+
+@keyframes blink { 50% { opacity: 0; } }
+@keyframes bounce { 0%, 60%, 100% { transform: translateY(0); opacity: 0.5; } 30% { transform: translateY(-4px); opacity: 1; } }
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: 0.001ms !important; animation-iteration-count: 1 !important; transition-duration: 0.001ms !important; } }
+
+/* responsive: desktop collapses via .sb-collapsed, mobile opens a drawer via .sb-open */
+@media (min-width: 769px) { .app.sb-collapsed .sidebar { display: none; } }
+@media (max-width: 768px) {
+  .sidebar { position: fixed; z-index: 40; top: 0; bottom: 0; left: 0; transform: translateX(-100%); visibility: hidden; transition: transform 0.2s, visibility 0.2s; }
+  .app.sb-open .sidebar { transform: none; visibility: visible; }
+  .app.sb-open .backdrop { display: block; position: fixed; inset: 0; z-index: 30; background: rgb(0 0 0 / 0.5); }
+  .suggest { grid-template-columns: minmax(0, 1fr); }
+  .conv-tools { opacity: 1; }
+  .hide-sm { display: none; }
+}
+</style>
+
+<div class="app" id="app">
+  <aside class="sidebar" id="sidebar" aria-label="Conversations">
+    <div class="sb-top">
+      <button class="new-chat" id="newChat" type="button"><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h14M12 5v14"/></svg><span>New chat</span><kbd class="hide-sm">Ctrl K</kbd></button>
+      <button class="icon-btn" id="closeSidebar" type="button" aria-label="Close sidebar" style="display:none"></button>
+    </div>
+    <nav class="sb-nav" id="sbNav" aria-label="Medical Chatbot history"></nav>
+    <div class="sb-foot">
+      <p><svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><rect width="18" height="11" x="3" y="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span>Chats stay in this browser. In this demo they also disappear when you reload.</span></p>
+      <div id="clearArea"></div>
+    </div>
+  </aside>
+  <div class="backdrop" id="backdrop"></div>
+
+  <div class="main">
+    <header class="header">
+      <button class="icon-btn" id="toggleSidebar" type="button" aria-label="Toggle sidebar" title="Toggle sidebar (Ctrl/⌘ B)"></button>
+      <div class="avatar-wrap"><div class="avatar lg" id="hdrAvatar"></div><span class="dot" role="img" aria-label="Online"></span></div>
+      <div class="titles"><h1><span>Medical Chatbot</span><span class="pill" title="Answers in this page are simulated">Demo</span></h1><p>Ask me anything!</p></div>
+      <button class="icon-btn" id="showDisclaimer" type="button" aria-label="Show medical disclaimer" title="Medical disclaimer"></button>
+      <button class="icon-btn hide-sm" id="showKeys" type="button" aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)"></button>
+      <button class="icon-btn" id="themeBtn" type="button"></button>
+    </header>
+
+    <div class="banner" id="disclaimer" role="note" aria-label="Medical disclaimer">
+      <svg class="ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4M12 16h.01"/></svg>
+      <p><strong>Educational use only. Not medical advice.</strong> <small>This demo replies from a small built-in sample, not a real model; sources and page numbers are samples. In an emergency, call your local emergency number.</small></p>
+      <button class="icon-btn" id="dismissDisclaimer" type="button" aria-label="Dismiss disclaimer" style="width:28px;height:28px"></button>
+    </div>
+
+    <main class="stage">
+      <div class="empty" id="empty">
+        <div>
+          <div class="avatar-wrap" style="display:inline-block"><div class="avatar" id="emptyAvatar"></div><span class="dot"></span></div>
+          <h2>How can I help with your health questions?</h2>
+          <p class="sub">I answer from an indexed medical reference and show my sources. I can't diagnose or replace a healthcare professional.</p>
+        </div>
+        <ul class="suggest" id="suggest" aria-label="Suggested questions"></ul>
+      </div>
+      <div class="scroller" id="scroller" hidden><div class="thread" id="thread" role="log" aria-label="Conversation" aria-live="off"></div></div>
+      <button class="jump" id="jump" type="button" hidden></button>
+
+      <div class="composer">
+        <form id="form" autocomplete="off">
+          <div class="field">
+            <label class="sr-only" for="message-input">Message</label>
+            <textarea id="message-input" rows="1" maxlength="2000" placeholder="Ask a medical question…"></textarea>
+            <button class="send" id="send" type="submit" aria-label="Send message" title="Send (Enter)" disabled></button>
+          </div>
+          <div class="hint"><span id="hint">Demo with sample answers. Enter to send, Shift+Enter for a new line.</span><span class="tab" id="count" hidden></span></div>
+        </form>
+      </div>
+    </main>
+  </div>
+</div>
+
+<dialog id="keys" aria-labelledby="keysTitle">
+  <div class="top"><h2 id="keysTitle">Keyboard shortcuts</h2><button class="icon-btn" id="keysClose" type="button" aria-label="Close" style="width:30px;height:30px"></button></div>
+  <dl>
+    <div><dt>Send message</dt><dd><kbd>Enter</kbd></dd></div>
+    <div><dt>New line</dt><dd><kbd>Shift</kbd><kbd>Enter</kbd></dd></div>
+    <div><dt>New chat</dt><dd><kbd>Ctrl/⌘</kbd><kbd>K</kbd></dd></div>
+    <div><dt>Toggle sidebar</dt><dd><kbd>Ctrl/⌘</kbd><kbd>B</kbd></dd></div>
+    <div><dt>Stop generating</dt><dd><kbd>Esc</kbd></dd></div>
+    <div><dt>Focus the message box</dt><dd><kbd>/</kbd></dd></div>
+    <div><dt>Show this help</dt><dd><kbd>?</kbd></dd></div>
+  </dl>
+</dialog>
+<div class="sr-only" role="status" aria-live="polite" id="live"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  /* ---------- icons ---------- */
+  var P = {
+    plus: '<path d="M5 12h14M12 5v14"/>', x: '<path d="M18 6 6 18M6 6l12 12"/>',
+    up: '<path d="m5 12 7-7 7 7M12 19V5"/>', stop: '<rect x="6" y="6" width="12" height="12" rx="2" fill="currentColor"/>',
+    copy: '<rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/>',
+    check: '<path d="M20 6 9 17l-5-5"/>',
+    refresh: '<path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8M21 3v5h-5M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16M8 16H3v5"/>',
+    tup: '<path d="M7 10v12M15 5.88 14 10h5.83a2 2 0 0 1 1.92 2.56l-2.33 8A2 2 0 0 1 17.5 22H4a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2h2.76a2 2 0 0 0 1.79-1.11L12 2a3.13 3.13 0 0 1 3 3.88Z"/>',
+    tdown: '<path d="M17 14V2M9 18.12 10 14H4.17a2 2 0 0 1-1.92-2.56l2.33-8A2 2 0 0 1 6.5 2H20a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2h-2.76a2 2 0 0 0-1.79 1.11L12 22a3.13 3.13 0 0 1-3-3.88Z"/>',
+    panel: '<rect width="18" height="18" x="3" y="3" rx="2"/><path d="M9 3v18"/>',
+    sun: '<circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>',
+    moon: '<path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>',
+    trash: '<path d="M3 6h18M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>',
+    pencil: '<path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/>',
+    msg: '<path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/>',
+    shield: '<path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/><path d="M12 8v4M12 16h.01"/>',
+    keys: '<rect width="20" height="16" x="2" y="4" rx="2"/><path d="M6 8h.01M10 8h.01M14 8h.01M18 8h.01M8 12h.01M12 12h.01M16 12h.01M7 16h10"/>',
+    book: '<path d="M12 7v14M3 18a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1h5a4 4 0 0 1 4 4 4 4 0 0 1 4-4h5a1 1 0 0 1 1 1v13a1 1 0 0 1-1 1h-6a3 3 0 0 0-3 3 3 3 0 0 0-3-3z"/>',
+    down: '<path d="M12 5v14m7-7-7 7-7-7"/>',
+    alert: '<path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3M12 9v4M12 17h.01"/>',
+    pulse: '<path d="M19 14c1.49-1.46 3-3.21 3-5.5A5.5 5.5 0 0 0 16.5 3c-1.76 0-3 .5-4.5 2-1.5-1.5-2.74-2-4.5-2A5.5 5.5 0 0 0 2 8.5c0 2.3 1.5 4.05 3 5.5l7 7Z"/><path d="M3.22 12H9.5l.5-1 2 4.5 2-7 1.5 3.5h5.27"/>',
+    buoy: '<circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><path d="m4.93 4.93 4.24 4.24M14.83 9.17l4.24-4.24M14.83 14.83l4.24 4.24M9.17 14.83l-4.24 4.24"/>',
+    spark: '<path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/>',
+    steth: '<path d="M11 2v2M5 2v2M5 3H4a2 2 0 0 0-2 2v4a6 6 0 0 0 12 0V5a2 2 0 0 0-2-2h-1"/><path d="M8 15a6 6 0 0 0 12 0v-3"/><circle cx="20" cy="10" r="2"/>'
+  };
+  function ic(n) { return '<svg class="ic" viewBox="0 0 24 24" aria-hidden="true">' + P[n] + '</svg>'; }
+
+  /* ---------- helpers ---------- */
+  var $ = function (s) { return document.querySelector(s); };
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]; }); }
+  function pad(n) { return (n < 10 ? "0" : "") + n; }
+  function hhmm(ts) { var d = new Date(ts); return pad(d.getHours()) + ":" + pad(d.getMinutes()); }
+  var uidN = 0; function uid(p) { uidN += 1; return p + uidN + "_" + Math.random().toString(36).slice(2, 7); }
+  function inline(t) { return esc(t).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>"); }
+  function md(text) {
+    var html = "", list = null, para = [];
+    function flushPara() { if (para.length) { html += "<p>" + para.map(inline).join("<br>") + "</p>"; para = []; } }
+    function closeList() { if (list) { html += "</" + list + ">"; list = null; } }
+    text.split("\n").forEach(function (line) {
+      var ul = /^- (.*)/.exec(line), ol = /^\d+\. (.*)/.exec(line);
+      if (ul || ol) {
+        flushPara(); var tag = ul ? "ul" : "ol";
+        if (list !== tag) { closeList(); html += "<" + tag + ">"; list = tag; }
+        html += "<li>" + inline((ul || ol)[1]) + "</li>";
+      } else if (!line.trim()) { flushPara(); closeList(); }
+      else { closeList(); para.push(line); }
+    });
+    flushPara(); closeList(); return html;
+  }
+
+  /* ---------- sample knowledge base (stands in for Pinecone + the LLM) ---------- */
+  var BOOK = "Medical_book.pdf";
+  var KB = {
+    diabetes: {
+      overview: "**Diabetes** is a long-term condition in which the body cannot properly regulate blood sugar (glucose), either because it makes too little insulin or cannot use it well. The main forms are **type 1**, **type 2** and **gestational** diabetes.",
+      symptoms: "Common symptoms of diabetes include:\n- Increased thirst and frequent urination\n- Unexplained weight loss\n- Constant tiredness\n- Blurred vision\n- Slow-healing cuts or frequent infections\n\nType 1 symptoms often appear quickly, while type 2 can develop so gradually that it goes unnoticed. A blood test is needed to confirm it.",
+      causes: "**Type 1** is an autoimmune condition in which the immune system damages the cells that make insulin. **Type 2** is linked to insulin resistance, with family history, excess body weight and low physical activity raising the risk.",
+      treatment: "Diabetes care usually combines:\n- A balanced diet and regular physical activity\n- Blood glucose monitoring\n- Medicines such as metformin, or insulin (always needed in type 1)\n- Regular check-ups for eyes, kidneys, feet and heart health\n\nThe right plan depends on the type and the person, so it should be set with a clinician.",
+      sources: [[212, "Diabetes mellitus is a group of disorders marked by high blood glucose resulting from defects in insulin production or action."], [214, "Early signs include excessive thirst, frequent urination, fatigue, blurred vision and slow wound healing."], [219, "Management centers on diet, exercise, glucose monitoring and, when needed, oral medicines or insulin."]]
+    },
+    hypertension: {
+      overview: "**High blood pressure (hypertension)** means the force of blood against artery walls stays too high. It is often called a silent condition because it can cause damage for years without symptoms.",
+      symptoms: "Hypertension usually has **no symptoms**, which is why regular blood pressure checks matter. Very high readings can cause severe headaches, shortness of breath or nosebleeds and need urgent medical attention.",
+      causes: "In most people there is no single cause. Contributing factors include:\n- Excess salt intake and body weight\n- Low physical activity and heavy alcohol use\n- Family history and older age\n- Conditions such as kidney disease or sleep apnea",
+      treatment: "Treatment starts with lifestyle changes:\n- Less salt and a diet rich in fruit, vegetables and whole grains (such as the DASH diet)\n- Regular exercise and a healthy weight\n- Limiting alcohol and not smoking\n\nIf that is not enough, doctors prescribe medicines such as diuretics, ACE inhibitors, ARBs or calcium channel blockers, with regular monitoring.",
+      sources: [[341, "Hypertension is sustained elevation of arterial pressure and is frequently asymptomatic until complications develop."], [344, "Lifestyle modification, including sodium restriction and weight loss, is the first step in treatment."], [346, "Drug classes used include diuretics, ACE inhibitors, angiotensin receptor blockers and calcium channel blockers."]]
+    },
+    migraine: {
+      overview: "A **migraine** is a recurring headache disorder, often with throbbing pain on one side of the head, nausea, and sensitivity to light and sound.",
+      symptoms: "Typical migraine features:\n- Throbbing pain, often on one side\n- Nausea or vomiting\n- Sensitivity to light and sound\n- Sometimes an aura (flashing lights or blind spots) before the pain",
+      causes: "The exact cause is not fully understood; it involves changes in brain activity and blood vessels. Common triggers include stress, irregular sleep, hormonal changes, skipped meals, dehydration, bright lights and certain foods or drinks.",
+      treatment: "What often helps:\n- Resting in a dark, quiet room\n- Staying hydrated\n- Taking an over-the-counter pain reliever early, as the label directs\n- Prescription migraine medicines if a doctor recommends them\n\nSee a doctor promptly for a sudden, severe headache, or one with fever, stiff neck, weakness or confusion.",
+      sources: [[498, "Migraine is characterized by recurrent attacks of moderate to severe headache, often unilateral and pulsating."], [501, "Common precipitating factors are stress, sleep disruption, hormonal fluctuation, fasting and certain foods."]]
+    },
+    wound: {
+      overview: "Wound healing happens in four overlapping stages:\n1. **Hemostasis:** blood vessels tighten and a clot forms to stop bleeding.\n2. **Inflammation:** white blood cells clear bacteria and debris, causing redness and swelling.\n3. **Proliferation:** new tissue and blood vessels build up and the wound edges draw together.\n4. **Remodeling:** collagen is reorganized and a scar matures, which can take months.",
+      treatment: "To support healing: keep the wound clean, cover it, avoid picking scabs, eat enough protein and don't smoke. See a clinician for deep wounds, signs of infection (spreading redness, pus, fever) or wounds that don't heal within a couple of weeks.",
+      sources: [[127, "Wound repair proceeds through hemostasis, inflammation, proliferation and remodeling."], [129, "Infection, poor nutrition, smoking and diabetes can delay healing."]]
+    }
+  };
+  var TOPICS = [["diabetes", /diabet|blood sugar|insulin|glucose/i], ["hypertension", /hypertens|blood pressure|\bbp\b/i], ["migraine", /migraine|headache/i], ["wound", /wound|healing|scar\b|\bcut\b/i]];
+  var INTENTS = [["symptoms", /symptom|signs?\b|warning/i], ["causes", /\bcauses?\b|why\b|trigger|risk/i], ["treatment", /treat|cure|manag|medic|therap|remed|drug|\bhelps?\b|what can i do/i]];
+
+  function lastTopic(history) {
+    for (var i = history.length - 1; i >= 0; i--) if (history[i].topic) return history[i].topic;
+    return null;
+  }
+  function answerFor(text, history) {
+    var topic = null;
+    TOPICS.forEach(function (t) { if (!topic && t[1].test(text)) topic = t[0]; });
+    if (!topic && /\b(it|this|that|they|these)\b|treat|cause|symptom/i.test(text)) topic = lastTopic(history);
+    if (!topic) {
+      if (/^\s*(hi|hello|hey)\b/i.test(text)) return { text: "Hello! I can answer questions about diabetes, high blood pressure, migraines and wound healing in this demo. Try one of the suggestions, or ask a follow-up like \"How is it treated?\".", sources: [], topic: null };
+      return { text: "I couldn't find that in the sample reference, so I don't want to guess. Try rephrasing, or ask a healthcare professional.", sources: [], topic: null };
+    }
+    var k = KB[topic], parts = [];
+    INTENTS.forEach(function (i) { if (i[1].test(text) && k[i[0]]) parts.push(k[i[0]]); });
+    if (!parts.length) parts.push(k.overview);
+    return { text: parts.join("\n\n"), topic: topic, sources: k.sources.map(function (s) { return { source: BOOK, page: s[0], snippet: s[1] }; }) };
+  }
+
+  /* ---------- emergency keywords (same patterns as lib/safety.ts) ---------- */
+  var SELF_HARM = [/\bsuicid(e|al)\b/i, /\bkill(ing)? (my|him|her)self\b/i, /\bend(ing)? my (own )?life\b/i, /\bwant(ed)? to die\b/i, /\bself[- ]?harm/i, /\bcut(ting)? myself\b/i, /\bhurt(ing)? myself\b/i];
+  var MEDICAL = [/\bchest (pain|pressure|tightness)\b/i, /\bheart attack\b/i, /\b(can'?t|cannot|can not|unable to) breathe\b/i, /\b(trouble|difficulty|struggling) breathing\b/i, /\bstroke\b/i, /\bface (is )?droop/i, /\bslurred speech\b/i, /\bsevere(ly)? bleeding\b/i, /\bbleeding (heavily|badly|won'?t stop)\b/i, /\boverdos(e|ed|ing)\b/i, /\bunconscious\b/i, /\bnot (responding|breathing)\b/i, /\bseizure\b/i, /\banaphyla/i, /\bthroat (is )?(closing|swelling)\b/i, /\bchoking\b/i, /\bpoison(ed|ing)?\b/i];
+  function emergencyOf(text) {
+    if (SELF_HARM.some(function (r) { return r.test(text); })) return "self-harm";
+    if (MEDICAL.some(function (r) { return r.test(text); })) return "medical";
+    return null;
+  }
+
+  /* ---------- state ---------- */
+  var now = Date.now(), DAY = 86400000;
+  var PROMPTS = ["What are the common symptoms of diabetes?", "How is high blood pressure treated?", "What causes migraines, and what helps them?", "Explain the stages of wound healing."];
+  function seed(title, ago, q, topic) {
+    var a = answerFor(q, []);
+    return { id: uid("c"), title: title, updatedAt: now - ago, messages: [
+      { id: uid("m"), role: "user", content: q, ts: now - ago, status: "done" },
+      { id: uid("m"), role: "bot", content: a.text, sources: a.sources, topic: a.topic, ts: now - ago + 4000, status: "done", feedback: null }
+    ] };
+  }
+  var state = {
+    convs: [
+      seed("How is high blood pressure treated?", DAY + 3600000, "How is high blood pressure treated?"),
+      seed("Explain the stages of wound healing", 3 * DAY, "Explain the stages of wound healing.")
+    ],
+    activeId: null, stream: null, confirmId: null, editId: null, confirmClear: false, stick: true
+  };
+  function active() { for (var i = 0; i < state.convs.length; i++) if (state.convs[i].id === state.activeId) return state.convs[i]; return null; }
+  function isDesktop() { return window.matchMedia("(min-width: 769px)").matches; }
+
+  /* ---------- static icon slots ---------- */
+  $("#toggleSidebar").innerHTML = ic("panel");
+  $("#showDisclaimer").innerHTML = ic("shield");
+  $("#showKeys").innerHTML = ic("keys");
+  $("#dismissDisclaimer").innerHTML = ic("x");
+  $("#keysClose").innerHTML = ic("x");
+  $("#hdrAvatar").innerHTML = ic("steth");
+  $("#emptyAvatar").innerHTML = ic("steth");
+  $("#send").innerHTML = ic("up");
+  $("#suggest").innerHTML = PROMPTS.map(function (p) { return '<li><button type="button" data-prompt="' + esc(p) + '">' + ic("spark") + "<span>" + esc(p) + "</span></button></li>"; }).join("");
+
+  /* ---------- theme ---------- */
+  function theme() {
+    var a = document.documentElement.getAttribute("data-theme");
+    if (a === "light" || a === "dark") return a;
+    return window.matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+  }
+  function paintTheme() {
+    var t = theme(), b = $("#themeBtn");
+    b.innerHTML = t === "dark" ? ic("sun") : ic("moon");
+    var next = t === "dark" ? "light" : "dark";
+    b.setAttribute("aria-label", "Switch to " + next + " theme"); b.title = "Switch to " + next + " theme";
+  }
+  $("#themeBtn").addEventListener("click", function () {
+    document.documentElement.setAttribute("data-theme", theme() === "dark" ? "light" : "dark"); paintTheme();
+  });
+  paintTheme();
+
+  /* ---------- sidebar ---------- */
+  function groupLabel(ts) {
+    var d = new Date(now); d.setHours(0, 0, 0, 0); var today = d.getTime();
+    var s = new Date(ts); s.setHours(0, 0, 0, 0); s = s.getTime();
+    if (s >= today) return "Today"; if (s >= today - DAY) return "Yesterday"; if (s >= today - 7 * DAY) return "Previous 7 days"; return "Older";
+  }
+  function renderSidebar() {
+    var nav = $("#sbNav");
+    if (!state.convs.length) { nav.innerHTML = '<p class="sb-empty">Your conversations will appear here.</p>'; }
+    else {
+      var order = ["Today", "Yesterday", "Previous 7 days", "Older"], groups = {};
+      state.convs.slice().sort(function (a, b) { return b.updatedAt - a.updatedAt; }).forEach(function (c) { (groups[groupLabel(c.updatedAt)] = groups[groupLabel(c.updatedAt)] || []).push(c); });
+      nav.innerHTML = order.filter(function (l) { return groups[l]; }).map(function (l) {
+        return '<section class="sb-group" aria-label="' + l + '"><h2>' + l + "</h2><ul>" + groups[l].map(function (c) {
+          var on = c.id === state.activeId, confirming = state.confirmId === c.id;
+          if (state.editId === c.id) return '<li class="conv' + (on ? " active" : "") + '"><input class="rename" data-rename="' + c.id + '" aria-label="Conversation title" maxlength="80" value="' + esc(c.title) + '"></li>';
+          return '<li class="conv' + (on ? " active" : "") + '"><button class="conv-main" type="button" data-select="' + c.id + '"' + (on ? ' aria-current="page"' : "") + ">" + ic("msg") + "<span>" + esc(c.title) + '</span></button><div class="conv-tools' + (confirming ? " on" : "") + '">' +
+            (confirming
+              ? '<button class="row-btn danger" type="button" data-confirm-del="' + c.id + '" aria-label="Confirm delete ' + esc(c.title) + '">' + ic("check") + '</button><button class="row-btn" type="button" data-cancel-del aria-label="Cancel delete">' + ic("x") + "</button>"
+              : '<button class="row-btn" type="button" data-edit="' + c.id + '" aria-label="Rename ' + esc(c.title) + '">' + ic("pencil") + '</button><button class="row-btn" type="button" data-del="' + c.id + '" aria-label="Delete ' + esc(c.title) + '">' + ic("trash") + "</button>") + "</div></li>";
+        }).join("") + "</ul></section>";
+      }).join("");
+    }
+    var ca = $("#clearArea");
+    if (!state.convs.length) ca.innerHTML = "";
+    else if (state.confirmClear) ca.innerHTML = '<div class="confirm"><span>Delete all chats?</span><button class="chip-btn danger" type="button" data-clear-yes>Delete</button><button class="chip-btn" type="button" data-clear-no>Cancel</button></div>';
+    else ca.innerHTML = '<button class="link-btn" type="button" data-clear>Clear all conversations</button>';
+    var r = nav.querySelector("[data-rename]"); if (r) { r.focus(); r.select(); }
+  }
+  function setSidebar(open) {
+    var app = $("#app");
+    if (isDesktop()) app.classList.toggle("sb-collapsed", !open); else app.classList.toggle("sb-open", open);
+  }
+  function sidebarOpen() { return isDesktop() ? !$("#app").classList.contains("sb-collapsed") : $("#app").classList.contains("sb-open"); }
+  function closeMobileSidebar() { if (!isDesktop()) $("#app").classList.remove("sb-open"); }
+
+  $("#toggleSidebar").addEventListener("click", function () { setSidebar(!sidebarOpen()); });
+  $("#backdrop").addEventListener("click", closeMobileSidebar);
+  $("#newChat").addEventListener("click", newChat);
+  $("#sbNav").addEventListener("click", function (e) {
+    var t = e.target.closest("button"); if (!t) return; var d = t.dataset;
+    if (d.select) { select(d.select); }
+    else if (d.edit) { state.editId = d.edit; renderSidebar(); }
+    else if (d.del) { state.confirmId = d.del; renderSidebar(); }
+    else if (d.confirmDel) { removeConv(d.confirmDel); }
+    else if (d.cancelDel !== undefined) { state.confirmId = null; renderSidebar(); }
+  });
+  $("#sbNav").addEventListener("keydown", function (e) {
+    var el = e.target; if (!el.dataset || !el.dataset.rename) return;
+    if (e.key === "Enter") commitRename(el); if (e.key === "Escape") { state.editId = null; renderSidebar(); }
+  });
+  $("#sbNav").addEventListener("focusout", function (e) { if (e.target.dataset && e.target.dataset.rename && state.editId) commitRename(e.target); });
+  function commitRename(el) {
+    var title = el.value.replace(/\s+/g, " ").trim().slice(0, 80), id = state.editId; state.editId = null;
+    state.convs.forEach(function (c) { if (c.id === id && title) c.title = title; }); renderSidebar();
+  }
+  $("#clearArea").addEventListener("click", function (e) {
+    var d = e.target.dataset;
+    if (d.clear !== undefined) { state.confirmClear = true; renderSidebar(); }
+    else if (d.clearNo !== undefined) { state.confirmClear = false; renderSidebar(); }
+    else if (d.clearYes !== undefined) { stop(); state.convs = []; state.activeId = null; state.confirmClear = false; renderAll(); }
+  });
+
+  /* ---------- thread rendering ---------- */
+  function userHTML(m) {
+    var em = emergencyOf(m.content), note = "";
+    if (em === "self-harm") note = '<div class="emergency" role="alert" data-testid="emergency-notice">' + ic("buoy") + "<p><strong>You don't have to go through this alone.</strong> If you might act on these thoughts, contact your local emergency number now, or reach a crisis line in your country (for example 988 in the US, Tele-MANAS 14416 in India). Talking to someone you trust can help too.</p></div>";
+    else if (em === "medical") note = '<div class="emergency" role="alert" data-testid="emergency-notice">' + ic("pulse") + "<p><strong>This may be an emergency.</strong> If this is happening to you or someone near you right now, call your local emergency number immediately instead of waiting for an answer here.</p></div>";
+    return '<div class="user-col"><div class="bubble">' + esc(m.content) + '</div><time class="stamp" datetime="' + new Date(m.ts).toISOString() + '">' + hhmm(m.ts) + "</time>" + note + "</div>";
+  }
+  function botHTML(m, isLast) {
+    var streaming = m.status === "streaming", typing = streaming && !m.content;
+    var h = '<div class="avatar">' + ic("steth") + '</div><div class="bot-body">';
+    h += typing ? '<div class="typing" role="status" aria-label="Assistant is typing"><i></i><i></i><i></i></div>' : '<div class="md' + (streaming ? " caret" : "") + '">' + md(m.content) + "</div>";
+    if (m.status === "stopped") h += '<p class="note">' + (m.content ? "Generation stopped." : "You stopped this response.") + "</p>";
+    if (m.status === "error") h += '<div class="err" role="alert">' + ic("alert") + '<span style="flex:1">' + esc(m.error || "Something went wrong.") + "</span>" + (isLast ? '<button class="chip-btn" type="button" data-act="regen">Retry</button>' : "") + "</div>";
+    if (m.sources && m.sources.length) {
+      h += '<details class="sources"' + (m.open ? " open" : "") + "><summary>" + ic("book") + "<span>Sources (" + m.sources.length + ')</span><span class="chev" aria-hidden="true">▾</span></summary><ol>' +
+        m.sources.map(function (s, i) { return '<li><span class="stamp tab">' + (i + 1) + '.</span><div><b>' + esc(s.source) + " <span>· page " + s.page + "</span></b><small>" + esc(s.snippet) + "</small></div></li>"; }).join("") + "</ol></details>";
+    }
+    if (!streaming && m.status !== "error") {
+      h += '<div class="actions"><button class="act" type="button" data-act="copy" aria-label="Copy answer" title="Copy answer">' + ic("copy") + "</button>" +
+        (isLast ? '<button class="act" type="button" data-act="regen" aria-label="Regenerate answer" title="Regenerate answer">' + ic("refresh") + "</button>" : "") +
+        '<button class="act" type="button" data-act="up" aria-label="Good answer" title="Good answer" aria-pressed="' + (m.feedback === "up") + '">' + ic("tup") + "</button>" +
+        '<button class="act" type="button" data-act="down" aria-label="Bad answer" title="Bad answer" aria-pressed="' + (m.feedback === "down") + '">' + ic("tdown") + "</button>" +
+        '<time datetime="' + new Date(m.ts).toISOString() + '">' + hhmm(m.ts) + "</time></div>";
+    }
+    return h + "</div>";
+  }
+  function lastBotId(c) { for (var i = c.messages.length - 1; i >= 0; i--) if (c.messages[i].role === "bot") return c.messages[i].id; return null; }
+  function renderThread() {
+    var c = active(), empty = !c || !c.messages.length;
+    $("#empty").hidden = !empty; $("#scroller").hidden = empty;
+    if (empty) { $("#thread").innerHTML = ""; $("#jump").hidden = true; return; }
+    var lb = lastBotId(c);
+    $("#thread").innerHTML = c.messages.map(function (m) {
+      return '<div class="msg ' + m.role + '" data-id="' + m.id + '"' + (m.role === "bot" && m.status === "streaming" ? ' aria-busy="true"' : "") + ">" + (m.role === "user" ? userHTML(m) : botHTML(m, m.id === lb)) + "</div>";
+    }).join("");
+    if (state.stick) scroller.scrollTop = scroller.scrollHeight;
+  }
+  function patchBot(m) { // re-render just the streaming message
+    var el = $('#thread [data-id="' + m.id + '"]'); if (!el) return;
+    var d = el.querySelector("details"); if (d) m.open = d.open;
+    el.innerHTML = botHTML(m, true);
+    if (state.stick) scroller.scrollTop = scroller.scrollHeight;
+  }
+  function renderAll() { renderSidebar(); renderThread(); paintSend(); }
+
+  /* ---------- scrolling ---------- */
+  var scroller = $("#scroller");
+  scroller.addEventListener("scroll", function () {
+    var dist = scroller.scrollHeight - scroller.scrollTop - scroller.clientHeight;
+    state.stick = dist <= 80; $("#jump").hidden = state.stick || scroller.hidden;
+  }, { passive: true });
+  $("#jump").innerHTML = ic("down") + " Jump to latest";
+  $("#jump").addEventListener("click", function () { state.stick = true; scroller.scrollTo({ top: scroller.scrollHeight, behavior: "smooth" }); $("#jump").hidden = true; });
+
+  /* ---------- chat actions ---------- */
+  function history(c, beforeIdx) { return c.messages.slice(0, beforeIdx).filter(function (m) { return m.status === "done" || m.status === "stopped"; }); }
+  function send(text) {
+    text = text.trim(); if (!text || state.stream) return;
+    var c = active();
+    if (!c) { c = { id: uid("c"), title: text.length > 48 ? text.slice(0, 47) + "…" : text, updatedAt: Date.now(), messages: [] }; state.convs.unshift(c); state.activeId = c.id; }
+    var h = history(c, c.messages.length);
+    c.messages.push({ id: uid("m"), role: "user", content: text, ts: Date.now(), status: "done" });
+    c.updatedAt = Date.now(); now = Date.now();
+    state.stick = true; renderSidebar(); runAssistant(c, text, h);
+  }
+  function runAssistant(c, text, h) {
+    var m = { id: uid("m"), role: "bot", content: "", status: "streaming", ts: Date.now(), feedback: null };
+    c.messages.push(m); renderThread(); scroller.scrollTop = scroller.scrollHeight;
+    var ans = answerFor(text, h), words = ans.text.match(/\S+\s*/g) || [], i = 0, timers = [];
+    state.stream = { m: m, timers: timers }; paintSend(); $("#live").textContent = "Assistant is responding…";
+    timers.push(setTimeout(function () { m.sources = ans.sources; m.topic = ans.topic; patchBot(m); }, 650)); // sources arrive first, like the real SSE
+    function tick() {
+      if (i >= words.length) { m.status = "done"; m.ts = Date.now(); finish(); return; }
+      m.content += words[i++]; patchBot(m);
+      timers.push(setTimeout(tick, 20 + Math.random() * 34));
+    }
+    timers.push(setTimeout(tick, 950));
+  }
+  function finish() {
+    var m = state.stream && state.stream.m; state.stream = null;
+    if (m) { var el = $('#thread [data-id="' + m.id + '"]'); if (el) el.removeAttribute("aria-busy"); }
+    renderThread(); paintSend(); renderSidebar();
+    $("#live").textContent = "Response complete.";
+  }
+  function stop() {
+    if (!state.stream) return;
+    state.stream.timers.forEach(clearTimeout);
+    state.stream.m.status = "stopped"; finish();
+  }
+  function regenerate() {
+    var c = active(); if (!c || state.stream) return;
+    var u = -1; for (var i = c.messages.length - 1; i >= 0; i--) if (c.messages[i].role === "user") { u = i; break; }
+    if (u < 0) return;
+    var q = c.messages[u].content, h = history(c, u);
+    c.messages = c.messages.slice(0, u + 1); state.stick = true; runAssistant(c, q, h);
+  }
+  function newChat() { stop(); state.activeId = null; closeMobileSidebar(); renderAll(); $("#message-input").focus(); }
+  function select(id) { stop(); state.activeId = id; state.stick = true; closeMobileSidebar(); renderAll(); }
+  function removeConv(id) {
+    if (state.activeId === id) { stop(); state.activeId = null; }
+    state.convs = state.convs.filter(function (c) { return c.id !== id; }); state.confirmId = null; renderAll();
+  }
+
+  $("#thread").addEventListener("click", function (e) {
+    var b = e.target.closest("[data-act]"); if (!b) return;
+    var row = b.closest(".msg"), c = active(); if (!c) return;
+    var m = c.messages.filter(function (x) { return x.id === row.dataset.id; })[0]; if (!m) return;
+    var act = b.dataset.act;
+    if (act === "regen") regenerate();
+    else if (act === "up" || act === "down") { m.feedback = m.feedback === act ? null : act; patchBot(m); }
+    else if (act === "copy") {
+      var done = function () { b.innerHTML = ic("check"); b.style.color = "var(--online)"; b.setAttribute("aria-label", "Copied"); setTimeout(function () { b.innerHTML = ic("copy"); b.style.color = ""; b.setAttribute("aria-label", "Copy answer"); }, 1500); };
+      try { navigator.clipboard.writeText(m.content).then(done, function () {}); } catch (err) { /* clipboard blocked */ }
+    }
+  });
+  $("#suggest").addEventListener("click", function (e) { var b = e.target.closest("[data-prompt]"); if (b) send(b.dataset.prompt); });
+
+  /* ---------- composer ---------- */
+  var input = $("#message-input"), sendBtn = $("#send"), MAX = 2000;
+  function paintSend() {
+    var streaming = !!state.stream;
+    sendBtn.classList.toggle("stop", streaming);
+    sendBtn.type = streaming ? "button" : "submit";
+    sendBtn.innerHTML = streaming ? ic("stop") : ic("up");
+    sendBtn.setAttribute("aria-label", streaming ? "Stop generating" : "Send message");
+    sendBtn.title = streaming ? "Stop generating (Esc)" : "Send (Enter)";
+    sendBtn.disabled = !streaming && !input.value.trim();
+  }
+  function autosize() {
+    input.style.height = "auto";
+    var max = 24 * 8 + 12, h = Math.min(input.scrollHeight, max);
+    input.style.height = h + "px"; input.style.overflowY = input.scrollHeight > max ? "auto" : "hidden";
+    var n = input.value.length, c = $("#count");
+    c.hidden = n < MAX * 0.8; c.textContent = n + "/" + MAX; c.className = "tab" + (n >= MAX ? " over" : "");
+    paintSend();
+  }
+  input.addEventListener("input", autosize);
+  input.addEventListener("paste", function (e) {
+    var t = (e.clipboardData && e.clipboardData.getData("text")) || "", sel = input.selectionEnd - input.selectionStart;
+    $("#hint").textContent = input.value.length - sel + t.length > MAX ? "Pasted text was trimmed to " + MAX + " characters." : "Demo with sample answers. Enter to send, Shift+Enter for a new line.";
+  });
+  input.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); submit(); }
+  });
+  $("#form").addEventListener("submit", function (e) { e.preventDefault(); submit(); });
+  sendBtn.addEventListener("click", function () { if (state.stream) stop(); });
+  function submit() { if (state.stream) return; var t = input.value; if (!t.trim()) return; input.value = ""; autosize(); send(t); }
+
+  /* ---------- disclaimer + dialog + hotkeys ---------- */
+  $("#dismissDisclaimer").addEventListener("click", function () { $("#disclaimer").hidden = true; });
+  $("#showDisclaimer").addEventListener("click", function () { $("#disclaimer").hidden = false; });
+  var keys = $("#keys");
+  function openKeys() { if (keys.showModal && !keys.open) { try { keys.showModal(); } catch (e) { keys.setAttribute("open", ""); } } }
+  $("#showKeys").addEventListener("click", openKeys);
+  $("#keysClose").addEventListener("click", function () { keys.close(); });
+  keys.addEventListener("click", function (e) { if (e.target === keys) keys.close(); });
+  document.addEventListener("keydown", function (e) {
+    if (e.isComposing) return;
+    var mod = e.ctrlKey || e.metaKey, k = e.key.toLowerCase(), typing = /^(INPUT|TEXTAREA|SELECT)$/.test((e.target.tagName || ""));
+    if (mod && k === "k") { e.preventDefault(); newChat(); }
+    else if (mod && k === "b") { e.preventDefault(); setSidebar(!sidebarOpen()); }
+    else if (e.key === "Escape") { if (state.stream) stop(); else if (!isDesktop()) closeMobileSidebar(); }
+    else if (!mod && !e.altKey && !typing && e.key === "/") { e.preventDefault(); input.focus(); }
+    else if (!mod && !e.altKey && !typing && e.key === "?") openKeys();
+  });
+
+  if (!isDesktop()) $("#app").classList.remove("sb-open");
+  renderAll(); autosize();
+})();
+</script>
+
+</body></html>

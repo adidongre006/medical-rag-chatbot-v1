@@ -1,0 +1,282 @@
+@import "tailwindcss";
+
+/* ------------------------------------------------------------------ *
+ * Design tokens.
+ * Derived from the original static/style.css:
+ *   gradient rgb(38,51,61) -> rgb(50,55,65) -> rgb(33,33,78)
+ *   glass card rgba(0,0,0,.4), 15px radius
+ *   bot accent rgb(82,172,255), user accent #58cc71, presence #4cd137
+ * Dark is the default; light is applied via <html data-theme="light">.
+ * ------------------------------------------------------------------ */
+:root,
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg-from: rgb(38 51 61);
+  --bg-via: rgb(50 55 65);
+  --bg-to: rgb(33 33 78);
+  --surface: rgb(0 0 0 / 0.4);
+  --surface-strong: rgb(0 0 0 / 0.55);
+  --surface-hover: rgb(255 255 255 / 0.07);
+  --line: rgb(255 255 255 / 0.12);
+  --fg: #f4f6fb;
+  --muted: rgb(255 255 255 / 0.7);
+  --accent: rgb(82 172 255);
+  --accent-fg: #04223d;
+  --accent-soft: rgb(82 172 255 / 0.16);
+  --user: #58cc71;
+  --user-fg: #06210f;
+  --online: #4cd137;
+  --danger: #ff8080;
+  --danger-soft: rgb(255 128 128 / 0.14);
+  --warn-soft: rgb(255 196 87 / 0.14);
+  --warn-line: rgb(255 196 87 / 0.4);
+  --ring: rgb(120 190 255);
+  --shadow-glass: 0 8px 32px rgb(0 0 0 / 0.35);
+}
+
+:root[data-theme="light"] {
+  color-scheme: light;
+  --bg-from: #eaf1f8;
+  --bg-via: #f4f7fb;
+  --bg-to: #e6e9fb;
+  --surface: rgb(255 255 255 / 0.72);
+  --surface-strong: rgb(255 255 255 / 0.92);
+  --surface-hover: rgb(15 27 45 / 0.06);
+  --line: rgb(15 27 45 / 0.14);
+  --fg: #0f1b2d;
+  --muted: #475670;
+  --accent: #0b64c0;
+  --accent-fg: #ffffff;
+  --accent-soft: rgb(11 100 192 / 0.1);
+  --user: #58cc71;
+  --user-fg: #06210f;
+  --online: #2fa81d;
+  --danger: #b3261e;
+  --danger-soft: rgb(179 38 30 / 0.1);
+  --warn-soft: rgb(176 112 0 / 0.1);
+  --warn-line: rgb(176 112 0 / 0.4);
+  --ring: #0b64c0;
+  --shadow-glass: 0 8px 32px rgb(15 27 45 / 0.12);
+}
+
+@theme inline {
+  --color-surface: var(--surface);
+  --color-surface-strong: var(--surface-strong);
+  --color-surface-hover: var(--surface-hover);
+  --color-line: var(--line);
+  --color-fg: var(--fg);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-fg: var(--accent-fg);
+  --color-accent-soft: var(--accent-soft);
+  --color-user: var(--user);
+  --color-user-fg: var(--user-fg);
+  --color-online: var(--online);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-warn-soft: var(--warn-soft);
+  --color-warn-line: var(--warn-line);
+  --color-ring: var(--ring);
+  --radius-card: 15px;
+  --radius-bubble: 1.25rem;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+}
+
+html,
+body {
+  height: 100%;
+  margin: 0;
+}
+
+body {
+  font-family: var(--font-inter), ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  color: var(--fg);
+  background: linear-gradient(to right, var(--bg-from), var(--bg-via), var(--bg-to)) fixed;
+  background-color: var(--bg-via);
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+time,
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+/* Thin, theme-aware scrollbars */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: var(--line) transparent;
+}
+
+/* ---------------- streaming caret + typing dots ---------------- */
+.caret::after {
+  content: "";
+  display: inline-block;
+  width: 0.5ch;
+  height: 1.05em;
+  margin-left: 2px;
+  vertical-align: text-bottom;
+  background: var(--accent);
+  border-radius: 1px;
+  animation: caret-blink 1s steps(1) infinite;
+}
+
+.typing-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--muted);
+  animation: typing-bounce 1.2s ease-in-out infinite;
+}
+.typing-dot:nth-child(2) {
+  animation-delay: 0.15s;
+}
+.typing-dot:nth-child(3) {
+  animation-delay: 0.3s;
+}
+
+@keyframes caret-blink {
+  50% {
+    opacity: 0;
+  }
+}
+@keyframes typing-bounce {
+  0%,
+  60%,
+  100% {
+    transform: translateY(0);
+    opacity: 0.5;
+  }
+  30% {
+    transform: translateY(-4px);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.001ms !important;
+    scroll-behavior: auto !important;
+  }
+  .caret::after {
+    animation: none;
+  }
+}
+
+/* ---------------- rendered markdown ---------------- */
+.markdown {
+  overflow-wrap: anywhere;
+}
+.markdown > :first-child {
+  margin-top: 0;
+}
+.markdown > :last-child {
+  margin-bottom: 0;
+}
+.markdown p,
+.markdown ul,
+.markdown ol,
+.markdown pre,
+.markdown blockquote,
+.markdown table {
+  margin: 0.75em 0;
+}
+.markdown ul {
+  list-style: disc;
+  padding-left: 1.4em;
+}
+.markdown ol {
+  list-style: decimal;
+  padding-left: 1.5em;
+}
+.markdown li {
+  margin: 0.25em 0;
+}
+.markdown h1,
+.markdown h2,
+.markdown h3,
+.markdown h4 {
+  font-weight: 650;
+  line-height: 1.3;
+  margin: 1.1em 0 0.4em;
+}
+.markdown h1 {
+  font-size: 1.25rem;
+}
+.markdown h2 {
+  font-size: 1.125rem;
+}
+.markdown h3,
+.markdown h4 {
+  font-size: 1rem;
+}
+.markdown a {
+  color: var(--accent);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+.markdown strong {
+  font-weight: 650;
+}
+.markdown blockquote {
+  border-left: 3px solid var(--accent);
+  padding-left: 0.9em;
+  color: var(--muted);
+}
+.markdown code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+  background: var(--surface-hover);
+  border-radius: 6px;
+  padding: 0.12em 0.4em;
+}
+.markdown pre {
+  overflow-x: auto;
+  background: var(--surface-strong);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 0.85em 1em;
+}
+.markdown pre code {
+  background: transparent;
+  padding: 0;
+}
+.markdown table {
+  border-collapse: collapse;
+  width: 100%;
+  font-size: 0.925em;
+}
+.markdown th,
+.markdown td {
+  border: 1px solid var(--line);
+  padding: 0.45em 0.7em;
+  text-align: left;
+}
+.markdown th {
+  background: var(--surface-hover);
+  font-weight: 600;
+}
+.markdown hr {
+  border: 0;
+  border-top: 1px solid var(--line);
+  margin: 1em 0;
+}
+#message-input{
+  border:none;
+
+}
+#message-input:focus{
+  outline: 0;
+  border: 0;
+}

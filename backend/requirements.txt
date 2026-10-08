@@ -1,0 +1,22 @@
+# Runtime dependencies. Ranges, not exact pins: this file was authored without
+# registry access. After your first successful install run
+#   pip freeze > requirements.lock.txt
+# and build production images from the lock file for fully reproducible builds.
+
+fastapi>=0.115,<1.0
+uvicorn[standard]>=0.30
+pydantic>=2.9,<3
+pydantic-settings>=2.7,<3
+python-multipart>=0.0.12   # legacy /get form endpoint
+
+# RAG stack (same components as the original Flask app)
+langchain>=0.3
+langchain-classic>=1.0      # create_retrieval_chain & friends (used by the original app)
+langchain-core>=0.3
+langchain-community>=0.3    # PyPDFLoader / DirectoryLoader (ingestion)
+langchain-huggingface>=0.1
+langchain-pinecone>=0.2
+langchain-text-splitters>=0.3
+sentence-transformers>=3.0
+pinecone>=5.0
+pypdf>=4.0
