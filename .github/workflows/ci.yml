@@ -1,4 +1,4 @@
-```yaml
+
 name: CI
 
 on:
@@ -66,4 +66,3 @@ jobs:
 
       - name: Build frontend
         run: npm run build
-```
