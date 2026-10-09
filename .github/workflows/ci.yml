@@ -1,3 +1,4 @@
+```yaml
 name: CI
 
 on:
@@ -11,73 +12,58 @@ concurrency:
 
 jobs:
   backend:
-    name: Backend
+    name: Backend Tests
     runs-on: ubuntu-latest
+
     defaults:
       run:
         working-directory: backend
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v5
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Setup Python
+        uses: actions/setup-python@v6
         with:
           python-version: "3.12"
-          cache: pip
-          cache-dependency-path: |
-            backend/requirements.txt
-            backend/requirements-dev.txt
 
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements-dev.txt
+          pip install -r requirements.txt
+          pip install langchain-groq pytest
 
-      # - name: Lint
-      #   run: ruff check .
-
-      # - name: Format check
-      #   run: ruff format --check .
-
-      # - name: Type check
-      #   run: mypy
-
-      - name: Run tests
-        run: pytest
+      - name: Run backend tests
+        run: python -m pytest
 
   frontend:
-    name: Frontend
+    name: Frontend Build
     runs-on: ubuntu-latest
+
     defaults:
       run:
         working-directory: frontend
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v5
 
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
         with:
-          node-version: 22
-          cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          node-version: "24"
+          check-latest: true
+          package-manager-cache: false
+
+      - name: Show runtime versions
+        run: |
+          node --version
+          npm --version
 
       - name: Install dependencies
         run: npm ci
 
-      # - name: Type check
-      #   run: npm run typecheck
-
-      # - name: Lint
-      #   run: npm run lint
-
-      # - name: Unit tests
-      #   run: npm test
-
-      - name: Production build
-        env:
-          NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+      - name: Build frontend
         run: npm run build
+```
