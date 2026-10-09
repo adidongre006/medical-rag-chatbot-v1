@@ -92,7 +92,7 @@
 
 ## Architecture
 
-  <img src="" alt="architecture" />
+  <img src="https://github.com/adidongre006/medical-rag-chatbot-v1/blob/main/image.png?raw=true" alt="architecture" />
 
 ### Technology responsibilities
 
