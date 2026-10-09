@@ -33,7 +33,7 @@
   ### Visit:https://medical-rag-chatbot-v1.vercel.app/
 ---
 
-![alt text](<legacy/preview.png>)
+![alt text](<https://github.com/adidongre006/medical-rag-chatbot-v1/blob/main/legacy/preview.png>)
 
 -----
 ## Project at a glance
