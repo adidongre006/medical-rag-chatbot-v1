@@ -27,6 +27,15 @@
 > Medical information should always be verified using qualified healthcare professionals and trusted clinical sources.
 
 ---
+
+## Overview
+  
+  ### Visit:https://medical-rag-chatbot-v1.vercel.app/
+---
+
+![alt text](<legacy/preview.png>)
+
+-----
 ## Project at a glance
 
 | Area | Implementation |
@@ -47,6 +56,8 @@
 
 - [🩺 Medical RAG Chatbot](#-medical-rag-chatbot)
   - [⚠️ Medical Safety Disclaimer](#️-medical-safety-disclaimer)
+  - [Overview](#overview)
+    - [Visit:https://medical-rag-chatbot-v1.vercel.app/](#visithttpsmedical-rag-chatbot-v1vercelapp)
   - [Project at a glance](#project-at-a-glance)
   - [Contents](#contents)
   - [Capabilities](#capabilities)
