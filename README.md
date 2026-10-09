@@ -92,7 +92,7 @@
 
 ## Architecture
 
-![alt text](image.png)
+  <img src="" alt="architecture" />
 
 ### Technology responsibilities
 
