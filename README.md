@@ -32,8 +32,8 @@
   
   ### Visit:https://medical-rag-chatbot-v1.vercel.app/
 ---
-
-![alt text](<https://github.com/adidongre006/medical-rag-chatbot-v1/blob/main/legacy/preview.png>)
+ <img src="https://github.com/adidongre006/medical-rag-chatbot-v1/blob/main/legacy/preview.png?raw=true" alt="Preview Img" />
+<!-- ![preview image](<https://github.com/adidongre006/medical-rag-chatbot-v1/blob/main/legacy/preview.png?raw=true>) -->
 
 -----
 ## Project at a glance
@@ -85,7 +85,6 @@
   - [Known limitations](#known-limitations)
   - [Troubleshooting](#troubleshooting)
   - [Contributing](#contributing)
-  - [License](#license)
 
 ## Capabilities
 
@@ -103,7 +102,7 @@
 
 ## Architecture
 
-  <img src="https://github.com/adidongre006/medical-rag-chatbot-v1/blob/main/image.png?raw=true" alt="architecture" />
+  <img src="https://github.com/adidongre006/medical-rag-chatbot-v1/blob/main/legacy/image.png?raw=true" alt="architecture" />
 
 ### Technology responsibilities
 
@@ -457,10 +456,6 @@ git add .
 git commit -m "feat: describe your change"
 git push origin feature/your-change
 ```
-
-## License
-
-No license is specified in the supplied project notes. Until a `LICENSE` file is added, do not assume the repository is released under an open-source license.
 
 ---
 
